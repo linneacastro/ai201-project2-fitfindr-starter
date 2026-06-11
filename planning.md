@@ -132,18 +132,18 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 ## A Complete Interaction (Step by Step)
 
-Write out what a full user interaction looks like from start to finish — tool call by tool call. Use a specific example query.
+FitFindr takes a user's request and runs three tools in order: search for a listing, suggest an outfit, then write a caption. Each tool only runs if the one before it worked. If the search comes back empty, the agent tells the user and stops — it doesn't pass empty data into the next tool.
 
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
 
 **Step 1:**
-<!-- What does the agent do first? Which tool is called? With what input? -->
+The agent calls `search_listings("vintage graphic tee", size=None, max_price=30.0)`. No size was given so that filter is skipped. The tool looks through the listings, scores them by how well they match the description, and returns the best matches. The agent picks the top result.
 
 **Step 2:**
-<!-- What happens next? What was returned from step 1? What tool is called now? -->
+The agent calls `suggest_outfit(new_item=<top result>, wardrobe=<user's wardrobe>)`. The wardrobe is built from what the user described — baggy jeans, chunky sneakers. The tool sends the item and wardrobe to an LLM and asks it to suggest specific outfit combinations using pieces the user already owns. Returns a plain text suggestion.
 
 **Step 3:**
-<!-- Continue until the full interaction is complete -->
+The agent calls `create_fit_card(outfit=<suggestion>, new_item=<top result>)`. The tool sends the outfit description and item details to an LLM and asks for a short caption — casual, specific, the kind of thing someone would actually post. Returns 2–4 sentences.
 
 **Final output to user:**
-<!-- What does the user actually see at the end? -->
+The caption, plus the listing details (title, price, platform, condition) so they know where to actually buy it.
