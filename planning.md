@@ -121,7 +121,14 @@ Return `session`. The caller checks `session["error"]` first — if it is `None`
 ## State Management
 
 **How does information from one tool get passed to the next?**
-<!-- Describe how your agent stores and accesses state within a session. What data is tracked? How is it passed between tool calls? -->
+
+All state for a single interaction lives in one **session dict**, created by `_new_session(query, wardrobe)` at the start of `run_agent`. This dict is the single source of truth: every tool reads its inputs from the session and writes its output back into the session. Nothing is passed between tools through globals or side channels — the session dict *is* the channel.
+
+**What is tracked:** the original `query`, the `parsed` parameters (`description`, `size`, `max_price`), the `wardrobe`, and one field per tool output — `search_results`, `selected_item`, `outfit_suggestion`, `fit_card` — plus an `error` field for early exits.
+
+**How it's passed:** the planning loop is the only thing that reads from and writes to the session. After each tool call it stores the result in the matching field, then reads that field back out to build the next tool's arguments. For example, `search_listings`'s result is stored in `session["search_results"]`; the loop selects `results[0]` into `session["selected_item"]`; and `suggest_outfit` is then called with `new_item=session["selected_item"]`. (See the field ownership table under Architecture for who writes and reads each field.)
+
+**Why this shape:** every output field is initialized to a neutral value (`None` or `[]`) in `_new_session()`, so the caller can safely inspect the session no matter where the run stopped. The caller (and the Gradio `handle_query` in `app.py`) checks `session["error"]` first; if it is `None`, the run succeeded and the output fields are populated; if it is set, the run ended early and the downstream fields are still their neutral defaults.
 
 ---
 
