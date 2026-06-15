@@ -98,8 +98,16 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     session = _new_session(query, wardrobe)
 
     # Step 2: parse the query into structured parameters
-    price_match = re.search(r'(?:under|less\s+than)\s*\$?(\d+(?:\.\d+)?)', query, re.IGNORECASE)
-    max_price = float(price_match.group(1)) if price_match else None
+    # Match both "under $30" / "below $30" / "less than $30" and the reversed
+    # "$25 or under" / "$25 or less" phrasing the first version missed.
+    price_match = re.search(
+        r'(?:under|below|less\s+than)\s*\$?(\d+(?:\.\d+)?)'
+        r'|\$?(\d+(?:\.\d+)?)\s+or\s+(?:less|under|below)',
+        query, re.IGNORECASE,
+    )
+    max_price = None
+    if price_match:
+        max_price = float(price_match.group(1) or price_match.group(2))
 
     size_match = re.search(r'\bsize\s+(\S+)|\bin\s+an?\s+(\S+)', query, re.IGNORECASE)
     size = None
@@ -107,7 +115,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         raw = size_match.group(1) or size_match.group(2)
         size = raw.strip('.,').upper()
 
-    description = re.sub(r'(?:under|less\s+than)\s*\$?\d+(?:\.\d+)?', '', query, flags=re.IGNORECASE)
+    description = re.sub(
+        r'(?:under|below|less\s+than)\s*\$?\d+(?:\.\d+)?'
+        r'|\$?\d+(?:\.\d+)?\s+or\s+(?:less|under|below)',
+        '', query, flags=re.IGNORECASE,
+    )
     description = re.sub(r'\bsize\s+\S+|\bin\s+an?\s+\S+', '', description, flags=re.IGNORECASE)
     description = ' '.join(description.split()).strip('.,').strip()
 

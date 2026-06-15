@@ -36,6 +36,13 @@ def _get_groq_client():
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
 
+# Common filler words that carry no clothing meaning. Removed before scoring so
+# they don't accidentally match inside listing text (e.g. "or" inside "for").
+_STOPWORDS = {
+    "a", "an", "the", "and", "or", "with", "for", "in", "of", "to", "on",
+    "my", "i", "is", "it", "under", "over", "less", "than", "size", "about",
+}
+
 def search_listings(
     description: str,
     size: str | None = None,
@@ -78,8 +85,11 @@ def search_listings(
         size_lower = size.lower()
         listings = [l for l in listings if size_lower in l["size"].lower()]
 
-    # Step 3: score by keyword overlap across title, style_tags, and description
-    keywords = description.lower().split()
+    # Step 3: score by keyword overlap across title, style_tags, and description.
+    # Strip punctuation and drop common filler words first, so leftover tokens
+    # like "or"/"under" can't substring-match inside unrelated descriptions.
+    keywords = [w.strip(".,!?:;$\"'") for w in description.lower().split()]
+    keywords = [w for w in keywords if w and w not in _STOPWORDS]
 
     def score(listing):
         searchable = (
