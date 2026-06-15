@@ -135,6 +135,18 @@ For each tool, describe the specific failure mode you're handling and what the a
 | `suggest_outfit` | Wardrobe is empty | Not a hard failure. The chain continues. The tool detects `wardrobe["items"] == []` and switches to a general-advice prompt. It returns something like: `"This item pairs well with wide-leg trousers or baggy denim. The vintage graphic print suits a Y2K or streetwear vibe."` `create_fit_card` is still called with that advice. |
 | `create_fit_card` | `outfit` string is empty or whitespace-only | Returns the string `"Cannot write a fit card without outfit details."` immediately, without calling the LLM. The agent surfaces this message to the user and notes that the outfit step may need to be retried. |
 
+### Milestone 5 — Failure modes verified
+
+Each failure mode above was deliberately triggered from the terminal to confirm the agent recovers gracefully (returns a specific message instead of raising):
+
+| Failure triggered | Input used | Result | Raised? |
+|-------------------|-----------|--------|---------|
+| `search_listings` returns zero results | `search_listings('designer ballgown', size='XXS', max_price=5)` | `[]` → agent sets `session["error"]` with adaptive recovery hints; `outfit_suggestion` and `fit_card` stay `None` | No |
+| `suggest_outfit` with empty wardrobe | top result + `get_empty_wardrobe()` | Full general-styling string (no wardrobe pieces referenced); chain continues to `create_fit_card` | No |
+| `create_fit_card` with empty outfit | `create_fit_card('', listing)` | `"Cannot write a fit card without outfit details."` (returned before any LLM call) | No |
+
+The `search_listings` failure was traced through the full agent: the empty-result gate fires, so `suggest_outfit` and `create_fit_card` never run on empty input. Demo recording of at least one triggered failure to follow.
+
 ---
 
 ## Architecture
