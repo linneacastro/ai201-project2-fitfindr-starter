@@ -135,10 +135,10 @@ the result in `session["fit_card"]`.
 the run succeeded and `session["fit_card"]` holds the caption; if it's set, the run ended
 early and the downstream fields are `None`.
 
-The key design decision: **gates between tools.** An empty search result or an empty outfit
-isn't passed downstream — it stops the chain with a specific, user-facing message. This
-prevents the classic multi-tool failure where one empty result silently poisons everything
-after it.
+The key design decision is the **gates between tools.** An empty search result or an empty
+outfit isn't passed downstream — it stops the chain with a specific, user-facing message.
+That keeps one empty result from flowing into the next tool, which would only produce broken
+or meaningless output.
 
 ---
 
@@ -214,10 +214,11 @@ Building from the spec in [planning.md](planning.md), most of the implementation
 plan closely — the three-tool sequence, the gates, and the session-dict design all landed as
 designed. A few things shifted or surfaced during implementation and testing:
 
-- **State management was under-specified up front.** The planning doc described the session
-  dict in the Architecture diagram but left the dedicated "State Management" prose blank. In
-  practice the field-ownership table (who writes / who reads each field) turned out to be the
-  most important artifact — it's what made the gates and the UI mapping unambiguous.
+- **State management was under-specified up front.** At planning time the session dict was
+  only sketched in the Architecture diagram; the dedicated "State Management" section stayed
+  blank until I filled it in afterward. In practice the field-ownership table (who writes and
+  who reads each field) turned out to be the most useful part — it's what made the gates and
+  the UI mapping unambiguous.
 
 - **The first price parser was narrower than the spec.** planning.md lists `"$30 or less"`
   as a target pattern, but the AI's initial regex only matched the *"under $X" / "less than
@@ -244,7 +245,8 @@ designed. A few things shifted or surfaced during implementation and testing:
   (e.g. `"max $X"`, `"around $X"`).
 - The catalog is 40 mock items; very specific queries may match on a partial keyword (e.g. a
   color) when the exact garment isn't present.
-- Keyword search has no stopword removal, so unrelated items can occasionally rank highly.
+- Relevance is simple keyword-overlap scoring, not semantic search, so it depends on the
+  catalog using the same words you do — synonyms it doesn't carry won't match.
 
 ---
 

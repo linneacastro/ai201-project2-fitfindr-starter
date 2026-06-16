@@ -37,7 +37,7 @@ A list of listing dicts sorted by relevance score, highest first. Returns an emp
 - `platform` (str): where the listing lives, e.g. `"depop"`, `"thredUp"`
 
 **What happens if it fails or returns nothing:**
-The agent stops the chain immediately and does not call `suggest_outfit`. It tells the user: "No listings matched your search — try broader keywords or remove the size or price filter."
+The agent stops the chain immediately and does not call `suggest_outfit`. It tells the user: "No listings matched your search. Try broader keywords or remove the size or price filter."
 
 ---
 
@@ -107,7 +107,7 @@ Call `search_listings(description, size, max_price)` using the parsed values. St
 **Step 3 — Call `suggest_outfit`**
 Call `suggest_outfit(new_item=session["selected_item"], wardrobe=session["wardrobe"])`. Store the result in `session["outfit_suggestion"]`.
 
-- If `session["outfit_suggestion"]` is empty or whitespace-only → set `session["error"] = "Couldn't generate outfit suggestions. Please try again."` → return `session` immediately. Do not proceed.
+- If `session["outfit_suggestion"]` is empty or whitespace-only → set `session["error"] = "Couldn't generate outfit suggestions — please try again."` → return `session` immediately. Do not proceed.
 - If not empty → continue to Step 4.
 
 **Step 4 — Call `create_fit_card`**
@@ -138,7 +138,7 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| `search_listings` | No results match the query | Sets `session["error"]` to `"No listings matched '[description]'."` If `size` was provided, appends `"Try removing the size filter."` If `max_price` was provided, appends `"Try raising your price ceiling or removing it."` Chain stops. `suggest_outfit` is never called with an empty item. |
+| `search_listings` | No results match the query | Sets `session["error"]` to `"No listings matched your search. Try broader keywords or remove the size or price filter."` Chain stops. `suggest_outfit` is never called with an empty item. |
 | `suggest_outfit` | Wardrobe is empty | Not a hard failure. The chain continues. The tool detects `wardrobe["items"] == []` and switches to a general-advice prompt. It returns something like: `"This item pairs well with wide-leg trousers or baggy denim. The vintage graphic print suits a Y2K or streetwear vibe."` `create_fit_card` is still called with that advice. |
 | `create_fit_card` | `outfit` string is empty or whitespace-only | Returns the string `"Cannot write a fit card without outfit details."` immediately, without calling the LLM. The agent surfaces this message to the user and notes that the outfit step may need to be retried. |
 
